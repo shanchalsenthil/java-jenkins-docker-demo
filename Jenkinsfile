@@ -8,7 +8,6 @@ pipeline {
 
     environment {
         CONTAINER_NAME = "java-app"
-        HOST_PORT = "8085"
     }
 
     stages {
@@ -38,12 +37,20 @@ pipeline {
                 docker stop ${CONTAINER_NAME} || true
                 docker rm ${CONTAINER_NAME} || true
 
-                docker run -d \
-                -p ${HOST_PORT}:9090 \
+                docker run -d -P \
                 --name ${CONTAINER_NAME} \
                 ${params.IMAGE_NAME}:${BUILD_NUMBER}
+
+                echo "Container started. Port mapping:"
+                docker port ${CONTAINER_NAME}
                 """
             }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker container prune -f || true'
         }
     }
 }
