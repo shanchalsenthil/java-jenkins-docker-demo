@@ -2,8 +2,7 @@ FROM eclipse-temurin:17-jdk
 
 WORKDIR /app
 
-ARG JAR_FILE=target/*.jar
-COPY ${JAR_FILE} app.jar
+COPY target/java-jenkins-docker-demo-1.0.jar app.jar
 
 EXPOSE 8080
 
