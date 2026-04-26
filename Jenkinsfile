@@ -1,10 +1,22 @@
 pipeline {
     agent any
 
+    parameters {
+        choice(name: 'BRANCH_NAME', choices: ['main', 'develop', 'feature-1'], description: 'Select branch to build')
+        string(name: 'IMAGE_NAME', defaultValue: 'java-jenkins-demo', description: 'Docker image name')
+    }
+
+    environment {
+        CONTAINER_NAME = "java-app"
+        HOST_PORT = "8085"
+    }
+
     stages {
+
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/YOUR_USERNAME/java-jenkins-docker-demo.git'
+                git branch: "${params.BRANCH_NAME}",
+                    url: 'https://github.com/shanchalsenthil/java-jenkins-docker-demo.git'
             }
         }
 
@@ -16,15 +28,22 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t java-jenkins-demo:1.0 .'
+                sh "docker build -t ${params.IMAGE_NAME}:${BUILD_NUMBER} ."
             }
         }
 
         stage('Run Container') {
             steps {
-                sh 'docker run -d -p 8080:8080 java-jenkins-demo:1.0'
+                sh """
+                docker stop ${CONTAINER_NAME} || true
+                docker rm ${CONTAINER_NAME} || true
+
+                docker run -d \
+                -p ${HOST_PORT}:8080 \
+                --name ${CONTAINER_NAME} \
+                ${params.IMAGE_NAME}:${BUILD_NUMBER}
+                """
             }
         }
     }
 }
-
