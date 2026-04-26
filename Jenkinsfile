@@ -39,7 +39,7 @@ pipeline {
                 docker rm ${CONTAINER_NAME} || true
 
                 docker run -d \
-                -p ${HOST_PORT}:8080 \
+                -p ${HOST_PORT}:9090 \
                 --name ${CONTAINER_NAME} \
                 ${params.IMAGE_NAME}:${BUILD_NUMBER}
                 """
