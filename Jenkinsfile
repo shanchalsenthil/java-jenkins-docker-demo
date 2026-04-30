@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         CONTAINER_NAME = "java-app"
-        EMAIL = "nikhil.gs@vvdntech.in"
+        EMAIL = "shanchal.intern@vvdntech.in"
         FROM_EMAIL = "shanchal.intern@vvdntech.in"
     }
 
