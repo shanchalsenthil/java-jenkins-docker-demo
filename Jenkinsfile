@@ -16,7 +16,7 @@ pipeline {
 
         // 1. PRE-BUILD EMAIL
         stage('Pre-Build Notification') {
-            steps {shanchal.intern@vvdntech.in
+            steps {
                 echo "Sending pre-build email..."
 
                 emailext(
