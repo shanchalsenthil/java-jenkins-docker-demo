@@ -16,13 +16,13 @@ pipeline {
 
         // 1. PRE-BUILD EMAIL
         stage('Pre-Build Notification') {
-            steps {
+            steps {shanchal.intern@vvdntech.in
                 echo "Sending pre-build email..."
 
                 emailext(
                     from: "${FROM_EMAIL}",
                     to: "${EMAIL}",
-                    subject: "🚀 STARTED: ${JOB_NAME} #${BUILD_NUMBER}",
+                    subject: " STARTED: ${JOB_NAME} #${BUILD_NUMBER}",
                     body: """
 Build Started
 
@@ -69,7 +69,7 @@ Jenkins
                 emailext(
                     from: "${FROM_EMAIL}",
                     to: "${EMAIL}",
-                    subject: "⏳ APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
+                    subject: " APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
                     body: """
 Deployment Approval Needed
 
@@ -122,7 +122,7 @@ Jenkins
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
-                subject: "✅ SUCCESS: ${JOB_NAME} #${BUILD_NUMBER}",
+                subject: " SUCCESS: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """
 Build Status: SUCCESS
 
@@ -149,7 +149,7 @@ Jenkins
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
-                subject: "❌ FAILURE: ${JOB_NAME} #${BUILD_NUMBER}",
+                subject: " FAILURE: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """
 Build Status: FAILURE
 
@@ -172,7 +172,7 @@ Jenkins
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
-                subject: "⚠️ ABORTED: ${JOB_NAME} #${BUILD_NUMBER}",
+                subject: " ABORTED: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """
 Build Status: ABORTED
 
