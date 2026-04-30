@@ -22,16 +22,19 @@ pipeline {
                 emailext(
                     from: "${FROM_EMAIL}",
                     to: "${EMAIL}",
-                    subject: "STARTED: ${JOB_NAME} #${BUILD_NUMBER}",
+                    subject: "🚀 STARTED: ${JOB_NAME} #${BUILD_NUMBER}",
                     body: """
 Build Started
 
-Job: ${JOB_NAME}
-Build Number: ${BUILD_NUMBER}
-Branch: ${params.BRANCH_NAME}
+Job Name   : ${JOB_NAME}
+Build No   : ${BUILD_NUMBER}
+Branch     : ${params.BRANCH_NAME}
 
-Check details:
+Track Progress:
 ${BUILD_URL}
+
+Regards,
+Jenkins
 """
                 )
             }
@@ -66,15 +69,19 @@ ${BUILD_URL}
                 emailext(
                     from: "${FROM_EMAIL}",
                     to: "${EMAIL}",
-                    subject: "APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
+                    subject: "⏳ APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
                     body: """
 Deployment Approval Needed
 
-Job: ${JOB_NAME}
-Build: ${BUILD_NUMBER}
+Job Name   : ${JOB_NAME}
+Build No   : ${BUILD_NUMBER}
+Branch     : ${params.BRANCH_NAME}
 
 Click below to approve:
 ${BUILD_URL}
+
+Regards,
+Jenkins
 """
                 )
 
@@ -106,24 +113,34 @@ ${BUILD_URL}
     // 7. POST BUILD EMAILS
     post {
 
+        always {
+            echo "Cleaning up unused containers..."
+            sh 'docker container prune -f || true'
+        }
+
         success {
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
-                subject: "SUCCESS: ${JOB_NAME} #${BUILD_NUMBER}",
+                subject: "✅ SUCCESS: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """
-Build SUCCESSFUL 
+Build Status: SUCCESS
 
-Job: ${JOB_NAME}
-Build Number: ${BUILD_NUMBER}
+Job Name   : ${JOB_NAME}
+Build No   : ${BUILD_NUMBER}
+Branch     : ${params.BRANCH_NAME}
 
-Container is running.
+Docker Image:
+${params.IMAGE_NAME}:${BUILD_NUMBER}
 
-Check:
-docker ps
+Container Status:
+Running successfully 
 
 Build URL:
 ${BUILD_URL}
+
+Regards,
+Jenkins
 """
             )
         }
@@ -132,15 +149,21 @@ ${BUILD_URL}
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
-                subject: "FAILED: ${JOB_NAME} #${BUILD_NUMBER}",
+                subject: "❌ FAILURE: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """
-Build FAILED 
+Build Status: FAILURE
 
-Job: ${JOB_NAME}
-Build Number: ${BUILD_NUMBER}
+Job Name   : ${JOB_NAME}
+Build No   : ${BUILD_NUMBER}
+Branch     : ${params.BRANCH_NAME}
 
-Check logs:
+Something went wrong during build/deployment.
+
+Check Logs:
 ${BUILD_URL}
+
+Regards,
+Jenkins
 """
             )
         }
@@ -149,21 +172,24 @@ ${BUILD_URL}
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
-                subject: "ABORTED: ${JOB_NAME} #${BUILD_NUMBER}",
+                subject: "⚠️ ABORTED: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """
-Build ABORTED 
+Build Status: ABORTED
+
+Job Name   : ${JOB_NAME}
+Build No   : ${BUILD_NUMBER}
+Branch     : ${params.BRANCH_NAME}
 
 Reason:
-Approval not given or build stopped
+Deployment was not approved or build was manually stopped.
 
 Build URL:
 ${BUILD_URL}
+
+Regards,
+Jenkins
 """
             )
-        }
-
-        always {
-            sh 'docker container prune -f || true'
         }
     }
 }
