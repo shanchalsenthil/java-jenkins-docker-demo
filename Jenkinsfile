@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         CONTAINER_NAME = "java-app"
-        EMAIL = "shanchalsenthil@gmail.com"
+        EMAIL = "shanchal.intern@vvdntech.in"
     }
 
     stages {
