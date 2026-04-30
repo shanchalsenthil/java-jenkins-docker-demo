@@ -9,6 +9,7 @@ pipeline {
     environment {
         CONTAINER_NAME = "java-app"
         EMAIL = "shanchal.intern@vvdntech.in"
+        FROM_EMAIL = "shanchalsenthil@gmail.com"
     }
 
     stages {
@@ -19,6 +20,8 @@ pipeline {
                 echo "Sending pre-build email..."
 
                 emailext(
+                    from: "${FROM_EMAIL}",
+                    to: "${EMAIL}",
                     subject: "STARTED: ${JOB_NAME} #${BUILD_NUMBER}",
                     body: """
 Build Started
@@ -29,8 +32,7 @@ Branch: ${params.BRANCH_NAME}
 
 Check details:
 ${BUILD_URL}
-""",
-                    to: "${EMAIL}"
+"""
                 )
             }
         }
@@ -57,11 +59,13 @@ ${BUILD_URL}
             }
         }
 
-        // 5. PRE-DEPLOY APPROVAL + EMAIL
+        // 5. APPROVAL + EMAIL
         stage('Approval Before Deployment') {
             steps {
 
                 emailext(
+                    from: "${FROM_EMAIL}",
+                    to: "${EMAIL}",
                     subject: "APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
                     body: """
 Deployment Approval Needed
@@ -71,8 +75,7 @@ Build: ${BUILD_NUMBER}
 
 Click below to approve:
 ${BUILD_URL}
-""",
-                    to: "${EMAIL}"
+"""
                 )
 
                 input message: "Approve deployment?",
@@ -105,6 +108,8 @@ ${BUILD_URL}
 
         success {
             emailext(
+                from: "${FROM_EMAIL}",
+                to: "${EMAIL}",
                 subject: "SUCCESS: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """
 Build SUCCESSFUL 
@@ -119,13 +124,14 @@ docker ps
 
 Build URL:
 ${BUILD_URL}
-""",
-                to: "${EMAIL}"
+"""
             )
         }
 
         failure {
             emailext(
+                from: "${FROM_EMAIL}",
+                to: "${EMAIL}",
                 subject: "FAILED: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """
 Build FAILED 
@@ -135,13 +141,14 @@ Build Number: ${BUILD_NUMBER}
 
 Check logs:
 ${BUILD_URL}
-""",
-                to: "${EMAIL}"
+"""
             )
         }
 
         aborted {
             emailext(
+                from: "${FROM_EMAIL}",
+                to: "${EMAIL}",
                 subject: "ABORTED: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """
 Build ABORTED 
@@ -151,8 +158,7 @@ Approval not given or build stopped
 
 Build URL:
 ${BUILD_URL}
-""",
-                to: "${EMAIL}"
+"""
             )
         }
 
