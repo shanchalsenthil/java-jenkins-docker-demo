@@ -10,7 +10,7 @@ pipeline {
         CONTAINER_NAME = "java-app"
         HOST_PORT = "8085"
         CONTAINER_PORT = "8080"
-        EMAIL = "shanchal.intern@vvdntech.in"
+        EMAIL = "boobalan.a@vvdntech.in"
         FROM_EMAIL = "shanchal.intern@vvdntech.in"
     }
 
