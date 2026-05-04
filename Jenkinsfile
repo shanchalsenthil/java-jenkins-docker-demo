@@ -127,14 +127,14 @@ Jenkins
                 body: """
 Build SUCCESS
 
-Job     : ${JOB_NAME}
-Build   : ${BUILD_NUMBER}
-Branch  : ${params.BRANCH_NAME}
+Job     : ${JOB_NAME} \n
+Build   : ${BUILD_NUMBER} \n
+Branch  : ${params.BRANCH_NAME} \n\n
 
-Image   : ${params.IMAGE_NAME}:${BUILD_NUMBER}
+Image   : ${params.IMAGE_NAME}:${BUILD_NUMBER} \n
 
 Application URL:
-http://<server-ip>:${HOST_PORT}
+http://<server-ip>:${HOST_PORT} \n\n
 
 Regards,
 Jenkins
