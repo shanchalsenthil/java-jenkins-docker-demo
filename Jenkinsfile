@@ -8,6 +8,8 @@ pipeline {
 
     environment {
         CONTAINER_NAME = "java-app"
+        HOST_PORT = "8085"
+        CONTAINER_PORT = "8080"
         EMAIL = "shanchal.intern@vvdntech.in"
         FROM_EMAIL = "shanchal.intern@vvdntech.in"
     }
@@ -22,13 +24,13 @@ pipeline {
                 emailext(
                     from: "${FROM_EMAIL}",
                     to: "${EMAIL}",
-                    subject: " STARTED: ${JOB_NAME} #${BUILD_NUMBER}",
+                    subject: "STARTED: ${JOB_NAME} #${BUILD_NUMBER}",
                     body: """
 Build Started
 
-Job Name   : ${JOB_NAME}
-Build No   : ${BUILD_NUMBER}
-Branch     : ${params.BRANCH_NAME}
+Job Name : ${JOB_NAME}
+Build No : ${BUILD_NUMBER}
+Branch   : ${params.BRANCH_NAME}
 
 Track Progress:
 ${BUILD_URL}
@@ -62,22 +64,22 @@ Jenkins
             }
         }
 
-        // 5. APPROVAL + EMAIL
+        // 5. APPROVAL
         stage('Approval Before Deployment') {
             steps {
 
                 emailext(
                     from: "${FROM_EMAIL}",
                     to: "${EMAIL}",
-                    subject: " APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
+                    subject: "APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
                     body: """
 Deployment Approval Needed
 
-Job Name   : ${JOB_NAME}
-Build No   : ${BUILD_NUMBER}
-Branch     : ${params.BRANCH_NAME}
+Job Name : ${JOB_NAME}
+Build No : ${BUILD_NUMBER}
+Branch   : ${params.BRANCH_NAME}
 
-Click below to approve:
+Approve here:
 ${BUILD_URL}
 
 Regards,
@@ -91,30 +93,29 @@ Jenkins
             }
         }
 
-        // 6. RUN CONTAINER
+        // 6. RUN CONTAINER (FIXED)
         stage('Run Container') {
             steps {
                 sh """
                 docker stop ${CONTAINER_NAME} || true
                 docker rm ${CONTAINER_NAME} || true
 
-                docker run -d -P \
+                docker run -d -p ${HOST_PORT}:${CONTAINER_PORT} \
                 --name ${CONTAINER_NAME} \
                 ${params.IMAGE_NAME}:${BUILD_NUMBER}
 
-                echo "Container started:"
+                echo "Container started successfully"
                 docker ps
-                docker port ${CONTAINER_NAME}
                 """
             }
         }
     }
 
-    // 7. POST BUILD EMAILS
+    // 7. POST BUILD
     post {
 
         always {
-            echo "Cleaning up unused containers..."
+            echo "Cleaning unused containers..."
             sh 'docker container prune -f || true'
         }
 
@@ -122,22 +123,18 @@ Jenkins
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
-                subject: " SUCCESS: ${JOB_NAME} #${BUILD_NUMBER}",
+                subject: "SUCCESS: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """
-Build Status: SUCCESS
+Build SUCCESS
 
-Job Name   : ${JOB_NAME}
-Build No   : ${BUILD_NUMBER}
-Branch     : ${params.BRANCH_NAME}
+Job     : ${JOB_NAME}
+Build   : ${BUILD_NUMBER}
+Branch  : ${params.BRANCH_NAME}
 
-Docker Image:
-${params.IMAGE_NAME}:${BUILD_NUMBER}
+Image   : ${params.IMAGE_NAME}:${BUILD_NUMBER}
 
-Container Status:
-Running successfully 
-
-Build URL:
-${BUILD_URL}
+Application URL:
+http://<server-ip>:${HOST_PORT}
 
 Regards,
 Jenkins
@@ -149,17 +146,15 @@ Jenkins
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
-                subject: " FAILURE: ${JOB_NAME} #${BUILD_NUMBER}",
+                subject: "FAILURE: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """
-Build Status: FAILURE
+Build FAILED
 
-Job Name   : ${JOB_NAME}
-Build No   : ${BUILD_NUMBER}
-Branch     : ${params.BRANCH_NAME}
+Job   : ${JOB_NAME}
+Build : ${BUILD_NUMBER}
+Branch: ${params.BRANCH_NAME}
 
-Something went wrong during build/deployment.
-
-Check Logs:
+Check logs:
 ${BUILD_URL}
 
 Regards,
@@ -172,19 +167,15 @@ Jenkins
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
-                subject: " ABORTED: ${JOB_NAME} #${BUILD_NUMBER}",
+                subject: "ABORTED: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """
-Build Status: ABORTED
+Build ABORTED
 
-Job Name   : ${JOB_NAME}
-Build No   : ${BUILD_NUMBER}
-Branch     : ${params.BRANCH_NAME}
+Job   : ${JOB_NAME}
+Build : ${BUILD_NUMBER}
+Branch: ${params.BRANCH_NAME}
 
-Reason:
-Deployment was not approved or build was manually stopped.
-
-Build URL:
-${BUILD_URL}
+Deployment was cancelled.
 
 Regards,
 Jenkins
