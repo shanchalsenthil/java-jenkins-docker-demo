@@ -4,6 +4,6 @@ WORKDIR /app
 
 COPY target/java-jenkins-docker-demo-1.0.jar app.jar
 
-EXPOSE 9090
+EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
