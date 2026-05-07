@@ -226,8 +226,8 @@ pipeline {
         
 success {
     emailext(
-        from: "${env.EMAIL_FROM}",
-        to: "${env.EMAIL_RECIPIENTS}",
+        from: "${env.FROM_EMAIL}",
+        to: "${env.EMAIL}",
         subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
         mimeType: 'text/html',
         body: """
