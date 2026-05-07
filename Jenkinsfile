@@ -1,7 +1,9 @@
+```groovy id="r6m0dn"
 pipeline {
     agent any
 
     parameters {
+
         choice(
             name: 'BRANCH_NAME',
             choices: ['main', 'develop', 'feature-1'],
@@ -16,7 +18,9 @@ pipeline {
     }
 
     environment {
+
         CONTAINER_NAME = "java-app"
+
         HOST_PORT      = "8085"
         CONTAINER_PORT = "8080"
 
@@ -28,6 +32,7 @@ pipeline {
 
         // 1. PRE-BUILD EMAIL
         stage('Pre-Build Notification') {
+
             steps {
 
                 echo "Sending pre-build email..."
@@ -40,8 +45,10 @@ pipeline {
 Build Started
 
 Job Name : ${JOB_NAME}
-Build No  : ${BUILD_NUMBER}
-Branch    : ${params.BRANCH_NAME}
+
+Build No : ${BUILD_NUMBER}
+
+Branch : ${params.BRANCH_NAME}
 
 Track Progress:
 ${BUILD_URL}
@@ -55,6 +62,7 @@ Jenkins
 
         // 2. CHECKOUT
         stage('Checkout') {
+
             steps {
 
                 git branch: "${params.BRANCH_NAME}",
@@ -64,6 +72,7 @@ Jenkins
 
         // 3. MAVEN BUILD
         stage('Build Maven') {
+
             steps {
 
                 sh 'mvn clean package'
@@ -72,6 +81,7 @@ Jenkins
 
         // 4. DOCKER BUILD
         stage('Build Docker Image') {
+
             steps {
 
                 sh "docker build -t ${params.IMAGE_NAME}:${BUILD_NUMBER} ."
@@ -80,48 +90,87 @@ Jenkins
 
         // 5. APPROVAL BEFORE DEPLOYMENT
         stage('Approval Before Deployment') {
+
             steps {
 
                 script {
 
-                    // Direct approval URL
-                    def approvalLink = "${BUILD_URL}input"
+                    def approveUrl = "${JENKINS_URL}job/${JOB_NAME}/${BUILD_NUMBER}/input/Proceed/proceedEmpty"
+
+                    def rejectUrl = "${JENKINS_URL}job/${JOB_NAME}/${BUILD_NUMBER}/input/Proceed/abort"
 
                     emailext(
+                        mimeType: 'text/html',
                         from: "${FROM_EMAIL}",
                         to: "${EMAIL}",
                         subject: "APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
                         body: """
-Deployment Approval Needed
+<html>
 
-Job Name : ${JOB_NAME}
-Build No  : ${BUILD_NUMBER}
-Branch    : ${params.BRANCH_NAME}
+<body>
 
-Click below to approve deployment:
+<h2>Deployment Approval Needed</h2>
 
-${approvalLink}
+<p><b>Job Name:</b> ${JOB_NAME}</p>
 
-Regards,
+<p><b>Build No:</b> ${BUILD_NUMBER}</p>
+
+<p><b>Branch:</b> ${params.BRANCH_NAME}</p>
+
+<br>
+
+<a href="${approveUrl}"
+style="
+background-color:green;
+color:white;
+padding:12px 24px;
+text-decoration:none;
+border-radius:5px;
+font-weight:bold;">
+APPROVE
+</a>
+
+&nbsp;&nbsp;
+
+<a href="${rejectUrl}"
+style="
+background-color:red;
+color:white;
+padding:12px 24px;
+text-decoration:none;
+border-radius:5px;
+font-weight:bold;">
+REJECT
+</a>
+
+<br><br>
+
+Regards,<br>
 Jenkins
+
+</body>
+
+</html>
 """
                     )
                 }
 
                 input(
-                    message: "Approve deployment?",
-                    submitter: "admin",
-                    ok: "Deploy"
+                    id: 'Proceed',
+                    message: 'Approve deployment?',
+                    ok: 'Deploy'
                 )
             }
         }
 
         // 6. RUN CONTAINER
         stage('Run Container') {
+
             steps {
 
                 sh """
                 docker stop ${CONTAINER_NAME} || true
+
                 docker rm ${CONTAINER_NAME} || true
 
                 docker run -d \
@@ -157,8 +206,10 @@ Jenkins
 Build SUCCESS
 
 Job Name : ${JOB_NAME}
-Build No  : ${BUILD_NUMBER}
-Branch    : ${params.BRANCH_NAME}
+
+Build No : ${BUILD_NUMBER}
+
+Branch : ${params.BRANCH_NAME}
 
 Docker Image:
 ${params.IMAGE_NAME}:${BUILD_NUMBER}
@@ -182,8 +233,10 @@ Jenkins
 Build FAILED
 
 Job Name : ${JOB_NAME}
-Build No  : ${BUILD_NUMBER}
-Branch    : ${params.BRANCH_NAME}
+
+Build No : ${BUILD_NUMBER}
+
+Branch : ${params.BRANCH_NAME}
 
 Check Logs:
 ${BUILD_URL}
@@ -204,8 +257,10 @@ Jenkins
 Build ABORTED
 
 Job Name : ${JOB_NAME}
-Build No  : ${BUILD_NUMBER}
-Branch    : ${params.BRANCH_NAME}
+
+Build No : ${BUILD_NUMBER}
+
+Branch : ${params.BRANCH_NAME}
 
 Deployment was cancelled.
 
@@ -216,3 +271,4 @@ Jenkins
         }
     }
 }
+```
