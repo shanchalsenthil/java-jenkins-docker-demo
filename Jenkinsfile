@@ -125,7 +125,7 @@ pipeline {
         //  DOCKER BUILD (FIXED TAG)
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ."
+                sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG}.${BUILD_NUMBER} ."
             }
         }
 
@@ -134,7 +134,7 @@ pipeline {
             steps {
                 sh """
                     docker tag ${DOCKER_IMAGE}:${IMAGE_TAG} \
-                    ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${IMAGE_TAG}
+                    ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${IMAGE_TAG}.${BUILD_NUMBER}
                 """
             }
         }
@@ -149,7 +149,7 @@ pipeline {
                 )]) {
                     sh """
                         docker login ${NEXUS_DOCKER} -u $DOCKER_USER -p $DOCKER_PASS
-                        docker push ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${IMAGE_TAG}
+                        docker push ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${IMAGE_TAG}.${BUILD_NUMBER}
                     """
                 }
             }
@@ -210,7 +210,7 @@ pipeline {
                     docker run -d \
                         -p ${HOST_PORT}:${CONTAINER_PORT} \
                         --name ${CONTAINER_NAME} \
-                        ${DOCKER_IMAGE}:${IMAGE_TAG}
+                        ${DOCKER_IMAGE}:${IMAGE_TAG}.${BUILD_NUMBER}
 
                     docker ps
                 """
