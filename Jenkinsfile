@@ -264,7 +264,11 @@ success {
                 to: "${EMAIL}",
                 subject: "ABORTED: ${JOB_NAME} #${BUILD_NUMBER}",
                 mimeType: 'text/html',
-                body: "Build Aborted"
+                body: """
+                    <h3 style="color:red;">Build Aborted</h3>
+
+                    <a href="${BUILD_URL}">Check Logs</a>
+                """
             )
         }
     }
