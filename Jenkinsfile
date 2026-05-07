@@ -375,7 +375,7 @@ pipeline {
 
     environment {
         APP_NAME        = "java-jenkins-docker-demo"
-        VERSION         = "1.0.${BUILD_NUMBER}"
+        VERSION         = "1.0-SNAPSHOT"
 
         CONTAINER_NAME  = "java-app"
         HOST_PORT       = "8085"
