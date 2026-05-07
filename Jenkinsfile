@@ -1,5 +1,13 @@
+```groovy id="v3x0qb"
+@Library('my-shared-lib') _
+
 pipeline {
+
     agent any
+
+    tools {
+        maven 'Maven-3'
+    }
 
     parameters {
 
@@ -18,23 +26,31 @@ pipeline {
 
     environment {
 
+        APP_NAME = "java-jenkins-docker-demo"
+        VERSION = "1.0"
+
         CONTAINER_NAME = "java-app"
 
-        HOST_PORT      = "8085"
+        HOST_PORT = "8085"
         CONTAINER_PORT = "8080"
 
-        EMAIL      = "shanchal.intern@vvdntech.in boobalan.a@vvdntech.in" 
+        EMAIL = "shanchal.intern@vvdntech.in"
         FROM_EMAIL = "shanchal.intern@vvdntech.in"
+
+        NEXUS_URL = "172.16.101.201:8081"
+        NEXUS_DOCKER = "172.16.101.201:8083"
+
+        DOCKER_IMAGE = "java-jenkins-demo"
+
+        SCANNER_HOME = tool 'sonar'
     }
 
     stages {
 
-        // 1. PRE-BUILD EMAIL
+        // 1. PRE BUILD EMAIL
         stage('Pre-Build Notification') {
 
             steps {
-
-                echo "Sending pre-build email..."
 
                 emailext(
                     from: "${FROM_EMAIL}",
@@ -78,31 +94,110 @@ Jenkins
             }
         }
 
-        // 4. DOCKER BUILD
+        // 4. SONARQUBE ANALYSIS
+        stage('SonarQube Analysis') {
+
+            steps {
+
+                withSonarQubeEnv('sonar-server') {
+
+                    sh """
+                        ${SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=java-jenkins-demo \
+                        -Dsonar.projectName=java-jenkins-demo \
+                        -Dsonar.sources=src/main/java \
+                        -Dsonar.tests=src/test/java \
+                        -Dsonar.java.binaries=target
+                    """
+                }
+            }
+        }
+
+        // 5. DEPLOY JAR TO NEXUS
+        stage('Deploy JAR to Nexus') {
+
+            steps {
+
+                nexusArtifactUploader(
+                    nexusVersion: 'nexus3',
+                    protocol: 'http',
+                    nexusUrl: "${NEXUS_URL}",
+                    credentialsId: 'nexus-cred',
+                    groupId: 'com.example',
+                    version: "${VERSION}",
+                    repository: 'maven-releases',
+
+                    artifacts: [[
+                        artifactId: "${APP_NAME}",
+                        classifier: '',
+                        file: "target/${APP_NAME}-${VERSION}.jar",
+                        type: 'jar'
+                    ]]
+                )
+            }
+        }
+
+        // 6. BUILD DOCKER IMAGE
         stage('Build Docker Image') {
 
             steps {
 
-                sh "docker build -t ${params.IMAGE_NAME}:${BUILD_NUMBER} ."
+                sh """
+                    docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                """
             }
         }
 
-        // 5. APPROVAL BEFORE DEPLOYMENT
- 
-stage('Approval Before Deployment') {
+        // 7. TAG DOCKER IMAGE
+        stage('Tag Docker Image') {
 
-    steps {
+            steps {
 
-        script {
+                sh """
+                    docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                    ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${BUILD_NUMBER}
+                """
+            }
+        }
 
-            def approvalPage = "${BUILD_URL}input"
+        // 8. PUSH DOCKER IMAGE TO NEXUS
+        stage('Push Docker Image to Nexus') {
 
-            emailext(
-                mimeType: 'text/html',
-                from: "${FROM_EMAIL}",
-                to: "${EMAIL}",
-                subject: "APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
-                body: """
+            steps {
+
+                withCredentials([usernamePassword(
+                    credentialsId: 'nexus-docker-cred',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+
+                    sh """
+                        docker login ${NEXUS_DOCKER} \
+                        -u $DOCKER_USER \
+                        -p $DOCKER_PASS
+
+                        docker push \
+                        ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${BUILD_NUMBER}
+                    """
+                }
+            }
+        }
+
+        // 9. APPROVAL BEFORE DEPLOYMENT
+        stage('Approval Before Deployment') {
+
+            steps {
+
+                script {
+
+                    def approvalPage = "${BUILD_URL}input"
+
+                    emailext(
+                        mimeType: 'text/html',
+                        from: "${FROM_EMAIL}",
+                        to: "${EMAIL}",
+                        subject: "APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
+                        body: """
 <html>
 
 <body>
@@ -137,43 +232,40 @@ Jenkins
 
 </html>
 """
-            )
+                    )
+                }
+
+                input(
+                    id: 'Proceed',
+                    message: 'Approve deployment?',
+                    submitter: 'admin',
+                    ok: 'Deploy'
+                )
+            }
         }
 
-        input(
-            id: 'Proceed',
-            message: 'Approve deployment?',
-            submitter: 'admin',
-            ok: 'Deploy'
-        )
-    }
-}
-
-
-        // 6. RUN CONTAINER
+        // 10. RUN CONTAINER
         stage('Run Container') {
 
             steps {
 
                 sh """
-                docker stop ${CONTAINER_NAME} || true
+                    docker stop ${CONTAINER_NAME} || true
 
-                docker rm ${CONTAINER_NAME} || true
+                    docker rm ${CONTAINER_NAME} || true
 
-                docker run -d \
-                -p ${HOST_PORT}:${CONTAINER_PORT} \
-                --name ${CONTAINER_NAME} \
-                ${params.IMAGE_NAME}:${BUILD_NUMBER}
+                    docker run -d \
+                    -p ${HOST_PORT}:${CONTAINER_PORT} \
+                    --name ${CONTAINER_NAME} \
+                    ${DOCKER_IMAGE}:${BUILD_NUMBER}
 
-                echo "Container started successfully"
-
-                docker ps
+                    docker ps
                 """
             }
         }
     }
 
-    // 7. POST BUILD ACTIONS
+    // POST ACTIONS
     post {
 
         always {
@@ -199,10 +291,10 @@ Build No : ${BUILD_NUMBER}
 Branch : ${params.BRANCH_NAME}
 
 Docker Image:
-${params.IMAGE_NAME}:${BUILD_NUMBER}
+${DOCKER_IMAGE}:${BUILD_NUMBER}
 
 Application URL:
-http://<server-ip>:${HOST_PORT}
+http://172.16.101.201:${HOST_PORT}
 
 Regards,
 Jenkins
