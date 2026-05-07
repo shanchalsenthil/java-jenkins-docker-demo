@@ -16,9 +16,9 @@ pipeline {
         )
 
         string(
-            name: 'IMAGE_NAME',
-            defaultValue: 'java-jenkins-demo',
-            description: 'Docker image name'
+            name: 'IMAGE_TAG',
+            defaultValue: '1.0',
+            description: 'Docker image tag'
         )
     }
 
@@ -125,7 +125,7 @@ pipeline {
         //  DOCKER BUILD (FIXED TAG)
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${DOCKER_IMAGE}:${VERSION} ."
+                sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ."
             }
         }
 
@@ -133,8 +133,8 @@ pipeline {
         stage('Tag Docker Image') {
             steps {
                 sh """
-                    docker tag ${DOCKER_IMAGE}:${VERSION} \
-                    ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${VERSION}
+                    docker tag ${DOCKER_IMAGE}:${IMAGE_TAG} \
+                    ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${IMAGE_TAG}
                 """
             }
         }
@@ -149,7 +149,7 @@ pipeline {
                 )]) {
                     sh """
                         docker login ${NEXUS_DOCKER} -u $DOCKER_USER -p $DOCKER_PASS
-                        docker push ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${VERSION}
+                        docker push ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${IMAGE_TAG}
                     """
                 }
             }
