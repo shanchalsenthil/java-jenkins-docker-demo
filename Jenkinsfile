@@ -25,7 +25,7 @@ pipeline {
     environment {
         APP_NAME        = "java-jenkins-docker-demo"
 
-        //  FIXED VERSION
+        // VERSION (Final)
         VERSION         = "1.0.${BUILD_NUMBER}"
 
         CONTAINER_NAME  = "java-app"
@@ -44,7 +44,6 @@ pipeline {
 
     stages {
 
-        //  PRE-BUILD EMAIL
         stage('Pre-Build Notification') {
             steps {
                 emailext(
@@ -54,18 +53,15 @@ pipeline {
                     mimeType: 'text/html',
                     body: """
                         <h3 style="color:blue;">Build Started</h3>
-
                         <b>Job Name:</b> ${JOB_NAME}<br>
                         <b>Build No:</b> ${BUILD_NUMBER}<br>
                         <b>Branch:</b> ${params.BRANCH_NAME}<br><br>
-
                         <a href="${BUILD_URL}">${BUILD_URL}</a>
                     """
                 )
             }
         }
 
-        //  CHECKOUT
         stage('Checkout') {
             steps {
                 git branch: "${params.BRANCH_NAME}",
@@ -73,21 +69,18 @@ pipeline {
             }
         }
 
-        //  SET VERSION IN MAVEN (IMPORTANT FIX)
         stage('Set Version') {
             steps {
                 sh "mvn versions:set -DnewVersion=${VERSION}"
             }
         }
 
-        //  BUILD
         stage('Build Maven') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
         }
 
-        //  SONAR
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonar-server') {
@@ -102,7 +95,6 @@ pipeline {
             }
         }
 
-        //  FIXED NEXUS UPLOAD
         stage('Deploy JAR to Nexus') {
             steps {
                 nexusArtifactUploader(
@@ -122,24 +114,25 @@ pipeline {
             }
         }
 
-        //  DOCKER BUILD (FIXED TAG)
+        //  FIXED DOCKER FLOW
+
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG}.${BUILD_NUMBER} ."
-            }
-        }
-
-        //  TAG
-        stage('Tag Docker Image') {
-            steps {
                 sh """
-                    docker tag ${DOCKER_IMAGE}:${IMAGE_TAG} \
-                    ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${IMAGE_TAG}.${BUILD_NUMBER}
+                    docker build -t ${DOCKER_IMAGE}:${VERSION} .
                 """
             }
         }
 
-        //  PUSH
+        stage('Tag Docker Image') {
+            steps {
+                sh """
+                    docker tag ${DOCKER_IMAGE}:${VERSION} \
+                    ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${VERSION}
+                """
+            }
+        }
+
         stage('Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(
@@ -149,18 +142,17 @@ pipeline {
                 )]) {
                     sh """
                         docker login ${NEXUS_DOCKER} -u $DOCKER_USER -p $DOCKER_PASS
-                        docker push ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${IMAGE_TAG}.${BUILD_NUMBER}
+                        docker push ${NEXUS_DOCKER}/${DOCKER_IMAGE}:${VERSION}
                     """
                 }
             }
         }
 
-        //  APPROVAL
         stage('Approval Before Deployment') {
             steps {
                 script {
                     def approvalUrl = "${BUILD_URL}input"
-        
+
                     emailext(
                         from: "${FROM_EMAIL}",
                         to: "${EMAIL}",
@@ -168,30 +160,18 @@ pipeline {
                         mimeType: 'text/html',
                         body: """
                             <h2 style="color:#2E86C1;">Deployment Approval Needed</h2>
-        
+
                             <b>Job Name:</b> ${JOB_NAME}<br>
                             <b>Build No:</b> ${BUILD_NUMBER}<br>
                             <b>Branch:</b> ${params.BRANCH_NAME}<br><br>
-        
-                            <b>Build URL:</b><br>
-                            <a href="${BUILD_URL}">${BUILD_URL}</a><br><br>
-        
-                            <a href="${approvalUrl}"
-                               style="background:green;
-                               color:white;
-                               padding:12px 20px;
-                               text-decoration:none;
-                               border-radius:5px;
-                               font-weight:bold;">
+
+                            <a href="${approvalUrl}" style="background:green;color:white;padding:12px 20px;text-decoration:none;border-radius:5px;">
                                Approve Deployment
-                            </a><br><br>
-        
-                            Regards,<br>
-                            Jenkins
+                            </a>
                         """
                     )
                 }
-        
+
                 input(
                     message: 'Approve deployment?',
                     submitter: 'admin',
@@ -200,7 +180,8 @@ pipeline {
             }
         }
 
-        //  DEPLOY
+        //  FIXED DEPLOY
+
         stage('Run Container') {
             steps {
                 sh """
@@ -210,7 +191,7 @@ pipeline {
                     docker run -d \
                         -p ${HOST_PORT}:${CONTAINER_PORT} \
                         --name ${CONTAINER_NAME} \
-                        ${DOCKER_IMAGE}:${IMAGE_TAG}.${BUILD_NUMBER}
+                        ${DOCKER_IMAGE}:${VERSION}
 
                     docker ps
                 """
@@ -223,38 +204,31 @@ pipeline {
         always {
             sh 'docker container prune -f || true'
         }
-        
-success {
-    emailext(
-        from: "${env.FROM_EMAIL}",
-        to: "${env.EMAIL}",
-        subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-        mimeType: 'text/html',
-        body: """
-            <h3 style="color:green;">Build Successful</h3>
 
-            <p><b>Job:</b> ${env.JOB_NAME}</p>
-            <p><b>Build Number:</b> ${env.BUILD_NUMBER}</p>
-            <p><b>Version:</b> ${env.VERSION}</p>
-            <p><b>Docker Image:</b> ${env.DOCKER_IMAGE}:${env.VERSION}</p>
+        success {
+            emailext(
+                from: "${FROM_EMAIL}",
+                to: "${EMAIL}",
+                subject: "SUCCESS: ${JOB_NAME} #${BUILD_NUMBER}",
+                mimeType: 'text/html',
+                body: """
+                    <h3 style="color:green;">Build Successful</h3>
+                    <p><b>Job:</b> ${JOB_NAME}</p>
+                    <p><b>Build Number:</b> ${BUILD_NUMBER}</p>
+                    <p><b>Version:</b> ${VERSION}</p>
+                    <p><b>Docker Image:</b> ${DOCKER_IMAGE}:${VERSION}</p>
+                    <a href="${BUILD_URL}console">View Logs</a>
+                """
+            )
+        }
 
-            <p>
-                <a href="${env.BUILD_URL}console">View Console Output</a>
-            </p>
-        """
-    )
-}
         failure {
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
                 subject: "FAILURE: ${JOB_NAME} #${BUILD_NUMBER}",
                 mimeType: 'text/html',
-                body: """
-                    <h3 style="color:red;">Build Failed</h3>
-
-                    <a href="${BUILD_URL}">Check Logs</a>
-                """
+                body: "<h3 style='color:red;'>Build Failed</h3><a href='${BUILD_URL}'>Check Logs</a>"
             )
         }
 
@@ -264,11 +238,7 @@ success {
                 to: "${EMAIL}",
                 subject: "ABORTED: ${JOB_NAME} #${BUILD_NUMBER}",
                 mimeType: 'text/html',
-                body: """
-                    <h3 style="color:red;">Build Aborted</h3>
-
-                    <a href="${BUILD_URL}">Check Logs</a>
-                """
+                body: "<h3 style='color:red;'>Build Aborted</h3><a href='${BUILD_URL}'>Check Logs</a>"
             )
         }
     }
