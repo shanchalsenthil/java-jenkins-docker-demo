@@ -1,3 +1,4 @@
+```groovy id="c7x2va"
 @Library('my-shared-lib') _
 
 pipeline {
@@ -105,7 +106,6 @@ Jenkins
                         -Dsonar.projectKey=java-jenkins-demo \
                         -Dsonar.projectName=java-jenkins-demo \
                         -Dsonar.sources=src/main/java \
-                        -Dsonar.tests=src/test/java \
                         -Dsonar.java.binaries=target
                     """
                 }
@@ -349,3 +349,4 @@ Jenkins
         }
     }
 }
+```
