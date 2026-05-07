@@ -1,16 +1,27 @@
+```groovy
 pipeline {
     agent any
 
     parameters {
-        choice(name: 'BRANCH_NAME', choices: ['main', 'develop', 'feature-1'], description: 'Select branch to build')
-        string(name: 'IMAGE_NAME', defaultValue: 'java-jenkins-demo', description: 'Docker image name')
+        choice(
+            name: 'BRANCH_NAME',
+            choices: ['main', 'develop', 'feature-1'],
+            description: 'Select branch to build'
+        )
+
+        string(
+            name: 'IMAGE_NAME',
+            defaultValue: 'java-jenkins-demo',
+            description: 'Docker image name'
+        )
     }
 
     environment {
         CONTAINER_NAME = "java-app"
-        HOST_PORT = "8085"
+        HOST_PORT      = "8085"
         CONTAINER_PORT = "8080"
-        EMAIL = "boobalan.a@vvdntech.in"
+
+        EMAIL      = "boobalan.a@vvdntech.in"
         FROM_EMAIL = "shanchal.intern@vvdntech.in"
     }
 
@@ -19,6 +30,7 @@ pipeline {
         // 1. PRE-BUILD EMAIL
         stage('Pre-Build Notification') {
             steps {
+
                 echo "Sending pre-build email..."
 
                 emailext(
@@ -29,8 +41,8 @@ pipeline {
 Build Started
 
 Job Name : ${JOB_NAME}
-Build No : ${BUILD_NUMBER}
-Branch   : ${params.BRANCH_NAME}
+Build No  : ${BUILD_NUMBER}
+Branch    : ${params.BRANCH_NAME}
 
 Track Progress:
 ${BUILD_URL}
@@ -45,6 +57,7 @@ Jenkins
         // 2. CHECKOUT
         stage('Checkout') {
             steps {
+
                 git branch: "${params.BRANCH_NAME}",
                     url: 'https://github.com/shanchalsenthil/java-jenkins-docker-demo.git'
             }
@@ -53,6 +66,7 @@ Jenkins
         // 3. MAVEN BUILD
         stage('Build Maven') {
             steps {
+
                 sh 'mvn clean package'
             }
         }
@@ -60,66 +74,82 @@ Jenkins
         // 4. DOCKER BUILD
         stage('Build Docker Image') {
             steps {
+
                 sh "docker build -t ${params.IMAGE_NAME}:${BUILD_NUMBER} ."
             }
         }
 
-        // 5. APPROVAL
+        // 5. APPROVAL BEFORE DEPLOYMENT
         stage('Approval Before Deployment') {
             steps {
 
-                emailext(
-                    from: "${FROM_EMAIL}",
-                    to: "${EMAIL}",
-                    subject: "APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
-                    body: """
+                script {
+
+                    // Direct approval URL
+                    def approvalLink = "${BUILD_URL}input"
+
+                    emailext(
+                        from: "${FROM_EMAIL}",
+                        to: "${EMAIL}",
+                        subject: "APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
+                        body: """
 Deployment Approval Needed
 
 Job Name : ${JOB_NAME}
-Build No : ${BUILD_NUMBER}
-Branch   : ${params.BRANCH_NAME}
+Build No  : ${BUILD_NUMBER}
+Branch    : ${params.BRANCH_NAME}
 
-Approve here:
-${BUILD_URL}
+Click below to approve deployment:
+
+${approvalLink}
 
 Regards,
 Jenkins
 """
-                )
+                    )
+                }
 
-                input message: "Approve deployment?",
-                      submitter: "admin",
-                      ok: "Deploy"
+                input(
+                    message: "Approve deployment?",
+                    submitter: "admin",
+                    ok: "Deploy"
+                )
             }
         }
 
-        // 6. RUN CONTAINER (FIXED)
+        // 6. RUN CONTAINER
         stage('Run Container') {
             steps {
+
                 sh """
                 docker stop ${CONTAINER_NAME} || true
                 docker rm ${CONTAINER_NAME} || true
 
-                docker run -d -p ${HOST_PORT}:${CONTAINER_PORT} \
+                docker run -d \
+                -p ${HOST_PORT}:${CONTAINER_PORT} \
                 --name ${CONTAINER_NAME} \
                 ${params.IMAGE_NAME}:${BUILD_NUMBER}
 
                 echo "Container started successfully"
+
                 docker ps
                 """
             }
         }
     }
 
-    // 7. POST BUILD
+    // 7. POST BUILD ACTIONS
     post {
 
         always {
+
             echo "Cleaning unused containers..."
+
             sh 'docker container prune -f || true'
         }
 
         success {
+
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
@@ -127,14 +157,15 @@ Jenkins
                 body: """
 Build SUCCESS
 
-Job     : ${JOB_NAME} \n
-Build   : ${BUILD_NUMBER} \n
-Branch  : ${params.BRANCH_NAME} \n\n
+Job Name : ${JOB_NAME}
+Build No  : ${BUILD_NUMBER}
+Branch    : ${params.BRANCH_NAME}
 
-Image   : ${params.IMAGE_NAME}:${BUILD_NUMBER} \n
+Docker Image:
+${params.IMAGE_NAME}:${BUILD_NUMBER}
 
 Application URL:
-http://<server-ip>:${HOST_PORT} \n\n
+http://<server-ip>:${HOST_PORT}
 
 Regards,
 Jenkins
@@ -143,6 +174,7 @@ Jenkins
         }
 
         failure {
+
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
@@ -150,11 +182,11 @@ Jenkins
                 body: """
 Build FAILED
 
-Job   : ${JOB_NAME}
-Build : ${BUILD_NUMBER}
-Branch: ${params.BRANCH_NAME}
+Job Name : ${JOB_NAME}
+Build No  : ${BUILD_NUMBER}
+Branch    : ${params.BRANCH_NAME}
 
-Check logs:
+Check Logs:
 ${BUILD_URL}
 
 Regards,
@@ -164,6 +196,7 @@ Jenkins
         }
 
         aborted {
+
             emailext(
                 from: "${FROM_EMAIL}",
                 to: "${EMAIL}",
@@ -171,9 +204,9 @@ Jenkins
                 body: """
 Build ABORTED
 
-Job   : ${JOB_NAME}
-Build : ${BUILD_NUMBER}
-Branch: ${params.BRANCH_NAME}
+Job Name : ${JOB_NAME}
+Build No  : ${BUILD_NUMBER}
+Branch    : ${params.BRANCH_NAME}
 
 Deployment was cancelled.
 
@@ -184,3 +217,4 @@ Jenkins
         }
     }
 }
+```
