@@ -1,4 +1,3 @@
-```groovy id="r6m0dn"
 pipeline {
     agent any
 
@@ -271,4 +270,3 @@ Jenkins
         }
     }
 }
-```
