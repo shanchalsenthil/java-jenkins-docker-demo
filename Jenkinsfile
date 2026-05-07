@@ -160,24 +160,38 @@ pipeline {
             steps {
                 script {
                     def approvalUrl = "${BUILD_URL}input"
-
+        
                     emailext(
                         from: "${FROM_EMAIL}",
                         to: "${EMAIL}",
                         subject: "APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
                         mimeType: 'text/html',
                         body: """
-                            <h2>Deployment Approval Needed</h2>
-
+                            <h2 style="color:#2E86C1;">Deployment Approval Needed</h2>
+        
+                            <b>Job Name:</b> ${JOB_NAME}<br>
+                            <b>Build No:</b> ${BUILD_NUMBER}<br>
+                            <b>Branch:</b> ${params.BRANCH_NAME}<br><br>
+        
+                            <b>Build URL:</b><br>
+                            <a href="${BUILD_URL}">${BUILD_URL}</a><br><br>
+        
                             <a href="${approvalUrl}"
-                               style="background:green;color:white;
-                               padding:10px 15px;text-decoration:none;">
+                               style="background:green;
+                               color:white;
+                               padding:12px 20px;
+                               text-decoration:none;
+                               border-radius:5px;
+                               font-weight:bold;">
                                Approve Deployment
-                            </a>
+                            </a><br><br>
+        
+                            Regards,<br>
+                            Jenkins
                         """
                     )
                 }
-
+        
                 input(
                     message: 'Approve deployment?',
                     submitter: 'admin',
