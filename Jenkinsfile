@@ -24,9 +24,7 @@ pipeline {
 
     environment {
         APP_NAME        = "java-jenkins-docker-demo"
-
-        //  FIXED VERSION
-        VERSION         = "1.0.${BUILD_NUMBER}"
+        VERSION         = ""   // will be generated dynamically
 
         CONTAINER_NAME  = "java-app"
         HOST_PORT       = "8085"
@@ -73,7 +71,22 @@ pipeline {
             }
         }
 
-        //  SET VERSION IN MAVEN (IMPORTANT FIX)
+        //  GENERATE VERSION (BUILD + DATE)
+        stage('Generate Version') {
+            steps {
+                script {
+                    def date = sh(
+                        script: "date +%Y%m%d-%H%M",
+                        returnStdout: true
+                    ).trim()
+
+                    env.VERSION = "1.0.${BUILD_NUMBER}-${date}"
+                    echo "Generated Version: ${env.VERSION}"
+                }
+            }
+        }
+
+        //  SET VERSION IN MAVEN
         stage('Set Version') {
             steps {
                 sh "mvn versions:set -DnewVersion=${VERSION}"
@@ -102,7 +115,7 @@ pipeline {
             }
         }
 
-        //  FIXED NEXUS UPLOAD
+        //  NEXUS UPLOAD
         stage('Deploy JAR to Nexus') {
             steps {
                 nexusArtifactUploader(
@@ -122,7 +135,7 @@ pipeline {
             }
         }
 
-        //  DOCKER BUILD (FIXED TAG)
+        //  DOCKER BUILD
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE}:${VERSION} ."
@@ -160,38 +173,28 @@ pipeline {
             steps {
                 script {
                     def approvalUrl = "${BUILD_URL}input"
-        
+
                     emailext(
                         from: "${FROM_EMAIL}",
                         to: "${EMAIL}",
                         subject: "APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
                         mimeType: 'text/html',
                         body: """
-                            <h2 style="color:#2E86C1;">Deployment Approval Needed</h2>
-        
+                            <h2>Deployment Approval Needed</h2>
+
                             <b>Job Name:</b> ${JOB_NAME}<br>
                             <b>Build No:</b> ${BUILD_NUMBER}<br>
                             <b>Branch:</b> ${params.BRANCH_NAME}<br><br>
-        
-                            <b>Build URL:</b><br>
-                            <a href="${BUILD_URL}">${BUILD_URL}</a><br><br>
-        
+
                             <a href="${approvalUrl}"
-                               style="background:green;
-                               color:white;
-                               padding:12px 20px;
-                               text-decoration:none;
-                               border-radius:5px;
-                               font-weight:bold;">
+                               style="background:green;color:white;
+                               padding:10px 15px;text-decoration:none;">
                                Approve Deployment
-                            </a><br><br>
-        
-                            Regards,<br>
-                            Jenkins
+                            </a>
                         """
                     )
                 }
-        
+
                 input(
                     message: 'Approve deployment?',
                     submitter: 'admin',
@@ -200,7 +203,7 @@ pipeline {
             }
         }
 
-        //  DEPLOY
+        // DEPLOY
         stage('Run Container') {
             steps {
                 sh """
@@ -211,8 +214,6 @@ pipeline {
                         -p ${HOST_PORT}:${CONTAINER_PORT} \
                         --name ${CONTAINER_NAME} \
                         ${DOCKER_IMAGE}:${VERSION}
-
-                    docker ps
                 """
             }
         }
@@ -224,6 +225,7 @@ pipeline {
             sh 'docker container prune -f || true'
         }
 
+        //  SUCCESS EMAIL (WITH CONSOLE LINK)
         success {
             emailext(
                 from: "${FROM_EMAIL}",
@@ -233,15 +235,23 @@ pipeline {
                 body: """
                     <h3 style="color:green;">Build Successful</h3>
 
-                    Docker Image: ${DOCKER_IMAGE}:${VERSION}<br>
+                    <b>Job Name:</b> ${JOB_NAME}<br>
+                    <b>Build No:</b> ${BUILD_NUMBER}<br>
+                    <b>Version:</b> ${VERSION}<br><br>
 
-                    <a href="http://172.16.101.201:${HOST_PORT}">
-                        Open App
-                    </a>
+                    <b>Docker Image:</b><br>
+                    ${DOCKER_IMAGE}:${VERSION}<br><br>
+
+                    <b>Console Output:</b><br>
+                    <a href="${BUILD_URL}console">${BUILD_URL}console</a><br><br>
+
+                    <b>Application:</b><br>
+                    <a href="http://172.16.101.201:${HOST_PORT}">Open App</a><br><br>
                 """
             )
         }
 
+        //  FAILURE EMAIL (WITH CONSOLE LINK)
         failure {
             emailext(
                 from: "${FROM_EMAIL}",
@@ -251,7 +261,11 @@ pipeline {
                 body: """
                     <h3 style="color:red;">Build Failed</h3>
 
-                    <a href="${BUILD_URL}">Check Logs</a>
+                    <b>Job Name:</b> ${JOB_NAME}<br>
+                    <b>Build No:</b> ${BUILD_NUMBER}<br><br>
+
+                    <b>Console Output:</b><br>
+                    <a href="${BUILD_URL}console">${BUILD_URL}console</a><br><br>
                 """
             )
         }
