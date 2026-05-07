@@ -94,9 +94,9 @@ Jenkins
 
                 script {
 
-                    def approveUrl = "${JENKINS_URL}job/${JOB_NAME}/${BUILD_NUMBER}/input/Proceed/proceedEmpty"
+                    def approveUrl = "${BUILD_URL}input/Proceed/proceedEmpty"
 
-                    def rejectUrl = "${JENKINS_URL}job/${JOB_NAME}/${BUILD_NUMBER}/input/Proceed/abort"
+                    def rejectUrl = "${BUILD_URL}input/Proceed/abort"
 
                     emailext(
                         mimeType: 'text/html',
