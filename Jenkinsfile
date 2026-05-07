@@ -223,25 +223,27 @@ pipeline {
         always {
             sh 'docker container prune -f || true'
         }
+        
+success {
+    emailext(
+        from: "${env.EMAIL_FROM}",
+        to: "${env.EMAIL_RECIPIENTS}",
+        subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        mimeType: 'text/html',
+        body: """
+            <h3 style="color:green;">Build Successful</h3>
 
-        success {
-            emailext(
-                from: "${FROM_EMAIL}",
-                to: "${EMAIL}",
-                subject: "SUCCESS: ${JOB_NAME} #${BUILD_NUMBER}",
-                mimeType: 'text/html',
-                body: """
-                    <h3 style="color:green;">Build Successful</h3>
+            <p><b>Job:</b> ${env.JOB_NAME}</p>
+            <p><b>Build Number:</b> ${env.BUILD_NUMBER}</p>
+            <p><b>Version:</b> ${env.VERSION}</p>
+            <p><b>Docker Image:</b> ${env.DOCKER_IMAGE}:${env.VERSION}</p>
 
-                    Docker Image: ${DOCKER_IMAGE}:${VERSION}<br>
-
-                    <a href="http://172.16.101.201:${HOST_PORT}">
-                        Open App
-                    </a>
-                """
-            )
-        }
-
+            <p>
+                <a href="${env.BUILD_URL}console">View Console Output</a>
+            </p>
+        """
+    )
+}
         failure {
             emailext(
                 from: "${FROM_EMAIL}",
