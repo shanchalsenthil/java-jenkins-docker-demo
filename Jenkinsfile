@@ -88,22 +88,22 @@ Jenkins
         }
 
         // 5. APPROVAL BEFORE DEPLOYMENT
-        stage('Approval Before Deployment') {
+ 
+stage('Approval Before Deployment') {
 
-            steps {
+    steps {
 
-                script {
+        script {
 
-                    def approveUrl = "${BUILD_URL}input/Proceed/proceedEmpty"
+            def approveUrl = "${BUILD_URL}input/Proceed/proceedEmpty"
+            def rejectUrl  = "${BUILD_URL}input/Proceed/abort"
 
-                    def rejectUrl = "${BUILD_URL}input/Proceed/abort"
-
-                    emailext(
-                        mimeType: 'text/html',
-                        from: "${FROM_EMAIL}",
-                        to: "${EMAIL}",
-                        subject: "APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
-                        body: """
+            emailext(
+                mimeType: 'text/html',
+                from: "${FROM_EMAIL}",
+                to: "${EMAIL}",
+                subject: "APPROVAL REQUIRED: ${JOB_NAME} #${BUILD_NUMBER}",
+                body: """
 <html>
 
 <body>
@@ -118,29 +118,39 @@ Jenkins
 
 <br>
 
-<a href="${approveUrl}"
-style="
-background-color:green;
-color:white;
-padding:12px 24px;
-text-decoration:none;
-border-radius:5px;
-font-weight:bold;">
-APPROVE
-</a>
+<form method="POST" action="${approveUrl}" style="display:inline;">
+
+    <button type="submit"
+    style="
+    background-color:green;
+    color:white;
+    padding:12px 24px;
+    border:none;
+    border-radius:5px;
+    font-weight:bold;
+    cursor:pointer;">
+    APPROVE
+    </button>
+
+</form>
 
 &nbsp;&nbsp;
 
-<a href="${rejectUrl}"
-style="
-background-color:red;
-color:white;
-padding:12px 24px;
-text-decoration:none;
-border-radius:5px;
-font-weight:bold;">
-REJECT
-</a>
+<form method="POST" action="${rejectUrl}" style="display:inline;">
+
+    <button type="submit"
+    style="
+    background-color:red;
+    color:white;
+    padding:12px 24px;
+    border:none;
+    border-radius:5px;
+    font-weight:bold;
+    cursor:pointer;">
+    REJECT
+    </button>
+
+</form>
 
 <br><br>
 
@@ -151,17 +161,16 @@ Jenkins
 
 </html>
 """
-                    )
-                }
-
-                input(
-                    id: 'Proceed',
-                    message: 'Approve deployment?',
-                    ok: 'Deploy'
-                )
-            }
+            )
         }
 
+        input(
+            id: 'Proceed',
+            message: 'Approve deployment?',
+            ok: 'Deploy'
+        )
+    }
+}
         // 6. RUN CONTAINER
         stage('Run Container') {
 
