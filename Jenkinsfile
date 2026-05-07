@@ -210,7 +210,7 @@ pipeline {
                     docker run -d \
                         -p ${HOST_PORT}:${CONTAINER_PORT} \
                         --name ${CONTAINER_NAME} \
-                        ${DOCKER_IMAGE}:${VERSION}
+                        ${DOCKER_IMAGE}:${IMAGE_TAG}
 
                     docker ps
                 """
