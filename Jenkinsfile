@@ -1,4 +1,3 @@
-```groovy id="v3x0qb"
 @Library('my-shared-lib') _
 
 pipeline {
