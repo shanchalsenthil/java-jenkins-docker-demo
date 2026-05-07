@@ -95,8 +95,7 @@ stage('Approval Before Deployment') {
 
         script {
 
-            def approveUrl = "${BUILD_URL}input/Proceed/proceedEmpty"
-            def rejectUrl  = "${BUILD_URL}input/Proceed/abort"
+            def approvalPage = "${BUILD_URL}input"
 
             emailext(
                 mimeType: 'text/html',
@@ -118,39 +117,16 @@ stage('Approval Before Deployment') {
 
 <br>
 
-<form method="POST" action="${approveUrl}" style="display:inline;">
-
-    <button type="submit"
-    style="
-    background-color:green;
-    color:white;
-    padding:12px 24px;
-    border:none;
-    border-radius:5px;
-    font-weight:bold;
-    cursor:pointer;">
-    APPROVE
-    </button>
-
-</form>
-
-&nbsp;&nbsp;
-
-<form method="POST" action="${rejectUrl}" style="display:inline;">
-
-    <button type="submit"
-    style="
-    background-color:red;
-    color:white;
-    padding:12px 24px;
-    border:none;
-    border-radius:5px;
-    font-weight:bold;
-    cursor:pointer;">
-    REJECT
-    </button>
-
-</form>
+<a href="${approvalPage}"
+style="
+background-color:green;
+color:white;
+padding:12px 24px;
+text-decoration:none;
+border-radius:5px;
+font-weight:bold;">
+OPEN APPROVAL PAGE
+</a>
 
 <br><br>
 
@@ -167,10 +143,13 @@ Jenkins
         input(
             id: 'Proceed',
             message: 'Approve deployment?',
+            submitter: 'admin',
             ok: 'Deploy'
         )
     }
 }
+
+
         // 6. RUN CONTAINER
         stage('Run Container') {
 
