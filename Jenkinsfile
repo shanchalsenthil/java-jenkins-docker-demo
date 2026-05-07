@@ -1,4 +1,3 @@
-```groovy id="c7x2va"
 @Library('my-shared-lib') _
 
 pipeline {
@@ -349,4 +348,3 @@ Jenkins
         }
     }
 }
-```
