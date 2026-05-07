@@ -23,7 +23,7 @@ pipeline {
         HOST_PORT      = "8085"
         CONTAINER_PORT = "8080"
 
-        EMAIL      = "shanchal.intern@vvdntech.in"
+        EMAIL      = "shanchal.intern@vvdntech.in boobalan.a@vvdntech.in" 
         FROM_EMAIL = "shanchal.intern@vvdntech.in"
     }
 
